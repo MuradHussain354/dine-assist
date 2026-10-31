@@ -311,8 +311,101 @@ console.log("Running Recommender test suite...\n");
   const res = recommend(mockMenu, tightBudgetIntent);
   assert.strictEqual(res.items.length, 0, "No items should be recommended for impossible budget");
   assert.strictEqual(res.total, 0, "Total must be 0");
-  assert(res.message.includes("minimum price") || res.message.includes("too low"), "Message must explain minimum cost");
+  assert(res.message.includes("minimum") || res.message.includes("too low"), "Message must explain minimum cost");
   console.log("  ✓ Explanatory message includes minimum cost when nothing fits");
+}
+
+// Test 7: Null budget gives a full combo (mains included)
+{
+  console.log("\nTest 7: Null budget gives a full combo with mains");
+  const intent: Intent = {
+    diet: "any",
+    spice_level: null,
+    budget_total: null,
+    party_size: 2,
+    exclusions: [],
+    cuisine: null,
+  };
+
+  const res = recommend(mockMenu, intent);
+  assert(res.items.length > 0, "Should return items when budget is null");
+
+  // Must include at least one main
+  const mainItems = res.items.filter((item) => {
+    const original = mockMenu.find((m) => m.id === item.menuItemId);
+    return original?.category === "main";
+  });
+  assert(mainItems.length > 0, "Null budget must include mains in the combo");
+  assert(res.total > 0, "Total must be positive");
+  // Message should not contain "₹null"
+  assert(!res.message.includes("₹null"), 'Message must not contain "₹null"');
+  assert(!res.message.includes("null"), 'Message must not reference null');
+  console.log("  ✓ Null budget produces a full combo with mains");
+}
+
+// Test 8: Null spice doesn't filter anything
+{
+  console.log("\nTest 8: Null spice_level does not filter out any dishes");
+  const intent: Intent = {
+    diet: "any",
+    spice_level: null,
+    budget_total: null,
+    party_size: 2,
+    exclusions: [],
+    cuisine: null,
+  };
+
+  const res = recommend(mockMenu, intent);
+  assert(res.items.length > 0, "Should return items when spice is null");
+
+  // Verify that high-spice items (spiceLevel 3) CAN appear
+  // With null spice, no filtering should happen, so the pool includes everything.
+  // The mock menu has spiceLevel 3 items (m3: Spicy Mutton Curry).
+  // While the recommender may not pick it due to sorting, let's verify that
+  // a direct intent targeting non-veg with null spice includes spice-3 items.
+  const nonVegIntent: Intent = {
+    diet: "non-veg",
+    spice_level: null,
+    budget_total: null,
+    party_size: 3, // Needs 3 mains — will include m1 (spice 1), m3 (spice 3)
+    exclusions: [],
+    cuisine: null,
+  };
+  const nonVegRes = recommend(mockMenu, nonVegIntent);
+  const spiceLevelsIncluded = nonVegRes.items.map((item) => {
+    const original = mockMenu.find((m) => m.id === item.menuItemId);
+    return original?.spiceLevel ?? -1;
+  });
+  // With only 2 non-veg mains (m1 spice=1, m3 spice=3), both must appear
+  assert(
+    spiceLevelsIncluded.some((s) => s === 3),
+    "Null spice must allow spice level 3 items to be recommended"
+  );
+  console.log("  ✓ Null spice_level allows all spice levels through");
+}
+
+// Test 9: Budget-too-low message includes minimum cost
+{
+  console.log("\nTest 9: Budget-too-low message includes minimum cost");
+  const intent: Intent = {
+    diet: "veg",
+    spice_level: null,
+    budget_total: 50, // Way too low for anything
+    party_size: 2,
+    exclusions: [],
+    cuisine: null,
+  };
+
+  const res = recommend(mockMenu, intent);
+  assert.strictEqual(res.items.length, 0, "No items for budget=50");
+  assert.strictEqual(res.total, 0, "Total must be 0");
+  assert(res.message.includes("too low"), 'Message should say "too low"');
+  // Check that message includes the actual minimum price
+  assert(
+    res.message.includes("₹") && /₹\d+/.test(res.message),
+    "Message must include a minimum cost figure with ₹"
+  );
+  console.log("  ✓ Budget-too-low message includes minimum cost");
 }
 
 console.log("\n==================================================");

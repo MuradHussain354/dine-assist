@@ -36,7 +36,8 @@ export async function POST(request: Request) {
     });
 
     // 2. Extract intent (LLM with rule-based fallback)
-    const { intent, usedFallback, latencyMs } = await extractIntent(message);
+    const { intent, usedFallback, fallbackReason, latencyMs } =
+      await extractIntent(message);
 
     // 3. Generate recommendation (pure function)
     const recommendation = recommend(availableMenuItems, intent);
@@ -76,6 +77,7 @@ export async function POST(request: Request) {
           userQuery: message,
           extractedJson: JSON.stringify(intent),
           usedFallback,
+          fallbackReason,
           latencyMs,
           recommendedItemIds: JSON.stringify(
             recommendation.items.map((i) => i.menuItemId)
@@ -89,6 +91,7 @@ export async function POST(request: Request) {
       intent,
       recommendation,
       usedFallback,
+      fallbackReason,
     });
   } catch (error) {
     console.error("Chat API error:", error);

@@ -14,6 +14,16 @@ const NUMBER_WORDS: Record<string, number> = {
   couple: 2,
 };
 
+// Exported keyword patterns for reuse in grounding guard
+export const DIET_KEYWORDS =
+  /\b(?:vegan|vegetarian|pure\s+veg(?:etarian)?|veg|non-?veg|chicken|mutton|fish|prawns?|meat|lamb|seafood|no\s+meat|egg)\b/i;
+
+export const SPICE_KEYWORDS =
+  /\b(?:spicy|spice|mild|hot|fiery|medium\s+spic(?:y|e)|not\s+too\s+spicy|not\s+spicy|low\s+spice|extra\s+spicy|very\s+spicy|no\s+spice|zero\s+spice|bland|mildly\s+spicy|little\s+spicy|moderate\s+spice|super\s+spicy)\b/i;
+
+export const BUDGET_NUMBER_PATTERN =
+  /\d+/;
+
 export function extractFallbackIntent(query: string): Intent {
   const text = query.trim().toLowerCase();
 
@@ -44,7 +54,7 @@ export function extractFallbackIntent(query: string): Intent {
     diet = "vegan";
   } else if (/\b(?:non-?veg|chicken|mutton|fish|prawns?|meat|lamb|seafood)\b/.test(text)) {
     diet = "non-veg";
-  } else if (/\b(?:vegetarian|pure\s+veg|veg)\b/.test(text)) {
+  } else if (/\b(?:vegetarian|pure\s+veg|veg|no\s+meat)\b/.test(text)) {
     // Avoid matching "veg" inside "non-veg"
     if (!/\bnon-?veg\b/.test(text)) {
       diet = "veg";
@@ -59,7 +69,7 @@ export function extractFallbackIntent(query: string): Intent {
     spiceLevel = 2;
   } else if (/\b(?:very\s+spicy|extra\s+spicy|super\s+spicy|spicy|hot|fiery)\b/.test(text)) {
     spiceLevel = 3;
-  } else if (/\b(?:no\s+spice|zero\s+spice|sweet|bland)\b/.test(text)) {
+  } else if (/\b(?:no\s+spice|zero\s+spice|bland)\b/.test(text)) {
     spiceLevel = 0;
   }
 
@@ -67,8 +77,6 @@ export function extractFallbackIntent(query: string): Intent {
   let budgetTotal: number | null = null;
   const isPerPerson = /\b(?:per\s+(?:person|head|pax|each)|a\s+head|\/person|\/head|each)\b/.test(text);
 
-  // Regex for amounts:
-  // "under 1500", "1500 rupees", "rs 1500", "₹1500", "budget 2000"
   const amountPatterns = [
     /(?:under|below|within|less\s+than|upto|up\s+to|around|budget(?:\s+of)?|max)?\s*(?:rs\.?|inr|₹)\s*(\d+(?:,\d+)?)\b/,
     /\b(\d+(?:,\d+)?)\s*(?:rupees|rs\.?|inr|₹)/,

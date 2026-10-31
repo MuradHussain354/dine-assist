@@ -22,8 +22,23 @@ async function main() {
 
   console.log("2. Running Intent Extraction (Ollama / Fallback)...");
   const extraction = await extractIntent(query);
-  console.log(`Extraction Latency: ${extraction.latencyMs}ms`);
-  console.log(`Used Fallback: ${extraction.usedFallback}`);
+
+  // Print extraction details
+  console.log(`\n--- Extraction Details ---`);
+  console.log(`Path Used:       ${extraction.usedFallback ? "Fallback" : "LLM"}`);
+  console.log(`Fallback Reason: ${extraction.fallbackReason ?? "N/A"}`);
+  console.log(`Latency:         ${extraction.latencyMs}ms`);
+  if (extraction.rawLlmOutput !== null) {
+    console.log(`Raw LLM Output:  ${extraction.rawLlmOutput}`);
+  }
+  if (extraction.adjustments.length > 0) {
+    console.log(`Grounding Adjustments:`);
+    for (const adj of extraction.adjustments) {
+      console.log(`  • ${adj}`);
+    }
+  }
+  console.log(`--- End Extraction ---\n`);
+
   console.log("Structured Intent:");
   console.log(JSON.stringify(extraction.intent, null, 2));
 
@@ -43,7 +58,10 @@ async function main() {
   }
   console.log("--------------------------------------------------");
   console.log(`TOTAL AMOUNT: ₹${recommendation.total}`);
-  if (extraction.intent.budget_total !== null) {
+  if (
+    extraction.intent.budget_total !== null &&
+    recommendation.items.length > 0
+  ) {
     console.log(`BUDGET LIMIT: ₹${extraction.intent.budget_total}`);
     console.log(
       `Budget Met: ${recommendation.total <= extraction.intent.budget_total ? "YES ✓" : "NO ✕"}`

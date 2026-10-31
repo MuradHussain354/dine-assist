@@ -3,15 +3,21 @@ import { LLMProvider } from "./types";
 export class OllamaProvider implements LLMProvider {
   private baseUrl: string;
   private model: string;
+  private timeoutMs: number;
 
-  constructor(baseUrl?: string, model?: string) {
+  constructor(baseUrl?: string, model?: string, timeoutMs?: number) {
     this.baseUrl = baseUrl || process.env.OLLAMA_URL || "http://localhost:11434";
     this.model = model || process.env.OLLAMA_MODEL || "llama3.2:3b";
+    this.timeoutMs =
+      timeoutMs ??
+      (process.env.OLLAMA_TIMEOUT_MS
+        ? parseInt(process.env.OLLAMA_TIMEOUT_MS, 10)
+        : 90000);
   }
 
   async generateJson(system: string, user: string): Promise<string> {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+    const timeoutId = setTimeout(() => controller.abort(), this.timeoutMs);
 
     try {
       const url = `${this.baseUrl.replace(/\/+$/, "")}/api/chat`;
@@ -28,8 +34,10 @@ export class OllamaProvider implements LLMProvider {
           ],
           stream: false,
           format: "json",
+          keep_alive: "30m",
           options: {
             temperature: 0,
+            num_predict: 200,
           },
         }),
         signal: controller.signal,

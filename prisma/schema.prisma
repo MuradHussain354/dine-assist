@@ -58,6 +58,7 @@ model ChatLog {
   userQuery          String
   extractedJson      String
   usedFallback       Boolean
+  fallbackReason     String?
   latencyMs          Int
   recommendedItemIds String      // JSON string
   createdAt          DateTime    @default(now())

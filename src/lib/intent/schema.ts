@@ -32,3 +32,4 @@ export const intentSchema = z.object({
 });
 
 export type Intent = z.infer<typeof intentSchema>;
+

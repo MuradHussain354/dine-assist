@@ -13,53 +13,41 @@ SCHEMA:
 
 RULES:
 1. "diet":
-   - "vegan" for strictly vegan requests.
-   - "veg" for vegetarian requests ("veg" includes vegan dishes).
-   - "non-veg" for requests with meat, chicken, mutton, fish, seafood.
-   - "any" when diet is not specified.
+   - Set to "any" UNLESS the user explicitly mentions a diet preference.
+   - "vegan" only if the user says vegan.
+   - "veg" if the user says veg, vegetarian, or no meat.
+   - "non-veg" if the user mentions chicken, mutton, fish, prawns, meat, lamb, seafood, or says non-veg.
+   - Otherwise "any". Do NOT infer diet from words like "light", "cheap", "healthy", or "good".
 2. "spice_level":
-   - 0: None / sweet / not spicy at all
-   - 1: Mild / "not too spicy" / low spice
-   - 2: Medium / moderate spice
-   - 3: Hot / "very spicy" / extra spicy / spicy
-   - null: if the user does not mention spice preference
+   - null UNLESS the user explicitly mentions spice, heat, or mildness.
+   - 0: "no spice", "zero spice", "not spicy at all", "bland"
+   - 1: "mild", "not too spicy", "low spice", "little spicy"
+   - 2: "medium", "medium spice", "moderate spice"
+   - 3: "spicy", "hot", "very spicy", "extra spicy", "fiery"
+   - Words like "light" and "cheap" do NOT indicate spice level 0.
 3. "budget_total":
-   - Total budget in rupees for the entire party.
-   - If the user provides a per-person budget (e.g., "500 per person", "400 each", "800 a head"), multiply by party_size to get the total budget.
-   - null if not mentioned.
+   - null UNLESS the user mentions a specific rupee amount.
+   - Total for the whole party. If the user says per-person ("500 per person", "400 each"), multiply by party_size.
 4. "party_size":
-   - Number of guests (default 1).
-   - E.g., "for two" -> 2, "for 4 people" -> 4, "party of 3" -> 3, "just me" -> 1.
+   - 1 if not stated.
+   - "for two" -> 2, "for 4" -> 4, "party of 3" -> 3, "just me" -> 1.
 5. "exclusions":
-   - Specific items or ingredients the customer wants excluded, e.g., ["onion", "garlic", "mushrooms", "dairy"].
-   - Default is [].
+   - Specific items or ingredients to exclude (e.g. ["onion", "mushrooms"]).
+   - Default [].
 6. "cuisine":
-   - Specific cuisine mentioned (e.g., "North Indian", "Mughlai", "Indo-Chinese", "Coastal Indian", "Asian", "Continental") or null.
+   - Specific cuisine if mentioned ("North Indian", "Mughlai", "Indo-Chinese", etc.) or null.
 
-WORKED EXAMPLES:
+EXAMPLES:
 
-Example 1:
 User: "something spicy, vegetarian, under 1500 rupees for two"
 JSON:
 {"diet":"veg","spice_level":3,"budget_total":1500,"party_size":2,"exclusions":[],"cuisine":null}
 
-Example 2:
-User: "dinner for 4 people, no onions, north indian, budget around 3000 rs, not too spicy"
+User: "dinner for 4 people, no onions, north indian, not too spicy"
 JSON:
-{"diet":"any","spice_level":1,"budget_total":3000,"party_size":4,"exclusions":["onions"],"cuisine":"North Indian"}
+{"diet":"any","spice_level":1,"budget_total":null,"party_size":4,"exclusions":["onions"],"cuisine":"North Indian"}
 
-Example 3:
-User: "vegan meal for just me, very spicy, under 600"
+User: "what's good here?"
 JSON:
-{"diet":"vegan","spice_level":3,"budget_total":600,"party_size":1,"exclusions":[],"cuisine":null}
-
-Example 4:
-User: "chicken biryani or non-veg mains for 3, around 800 per person, medium spice"
-JSON:
-{"diet":"non-veg","spice_level":2,"budget_total":2400,"party_size":3,"exclusions":[],"cuisine":null}
-
-Example 5:
-User: "any good drinks and desserts without dairy"
-JSON:
-{"diet":"any","spice_level":null,"budget_total":null,"party_size":1,"exclusions":["dairy"],"cuisine":null}
+{"diet":"any","spice_level":null,"budget_total":null,"party_size":1,"exclusions":[],"cuisine":null}
 `;
