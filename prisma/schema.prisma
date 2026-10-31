@@ -9,3 +9,56 @@ datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
+
+model MenuItem {
+  id          String      @id @default(cuid())
+  name        String
+  description String
+  price       Int         // in rupees
+  category    String      // starter | main | side | dessert | drink
+  dietTags    String      // JSON string, e.g. '["veg"]'
+  spiceLevel  Int         // 0-3
+  cuisine     String
+  isAvailable Boolean     @default(true)
+  orderItems  OrderItem[]
+}
+
+model DiningTable {
+  id       String    @id @default(cuid())
+  number   Int       @unique
+  orders   Order[]
+  chatLogs ChatLog[]
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  tableId     String
+  table       DiningTable @relation(fields: [tableId], references: [id])
+  status      String      @default("placed") // placed | preparing | ready | served | cancelled
+  totalAmount Int
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  items       OrderItem[]
+}
+
+model OrderItem {
+  id         String   @id @default(cuid())
+  orderId    String
+  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menuItemId String
+  menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
+  quantity   Int
+  unitPrice  Int      // snapshot at order time
+}
+
+model ChatLog {
+  id                 String      @id @default(cuid())
+  tableId            String
+  table              DiningTable @relation(fields: [tableId], references: [id])
+  userQuery          String
+  extractedJson      String
+  usedFallback       Boolean
+  latencyMs          Int
+  recommendedItemIds String      // JSON string
+  createdAt          DateTime    @default(now())
+}
