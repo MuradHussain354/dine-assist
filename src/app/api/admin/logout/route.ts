@@ -26,3 +26,4 @@ export async function GET(request: Request) {
   const url = new URL("/admin/login", request.url);
   return NextResponse.redirect(url);
 }
+

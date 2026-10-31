@@ -53,6 +53,7 @@ export default function AdminMenuPage() {
 
   // Delete modal state
   const [deleteTarget, setDeleteTarget] = useState<MenuItem | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
   // Toggle availability state tracker
@@ -255,16 +256,22 @@ export default function AdminMenuPage() {
     if (!deleteTarget) return;
     try {
       setDeleting(true);
+      setDeleteError(null);
       const res = await fetch(`/api/admin/menu/${deleteTarget.id}`, {
         method: "DELETE",
       });
 
-      if (res.ok) {
-        setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
-        setDeleteTarget(null);
+      const data = await res.json();
+      if (!res.ok) {
+        setDeleteError(data.error || "Failed to delete dish");
+        return;
       }
+
+      setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id));
+      setDeleteTarget(null);
     } catch (err) {
       console.error("Error deleting dish:", err);
+      setDeleteError("An unexpected network error occurred.");
     } finally {
       setDeleting(false);
     }
@@ -643,7 +650,10 @@ export default function AdminMenuPage() {
                               Edit
                             </button>
                             <button
-                              onClick={() => setDeleteTarget(item)}
+                              onClick={() => {
+                                setDeleteTarget(item);
+                                setDeleteError(null);
+                              }}
                               className="px-2.5 py-1 text-xs font-medium text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 rounded-lg transition-colors"
                             >
                               Delete
@@ -884,22 +894,46 @@ export default function AdminMenuPage() {
               ? This action cannot be undone.
             </p>
 
+            {deleteError && (
+              <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm p-3 rounded-lg flex items-start gap-2">
+                <span className="text-base leading-none mt-0.5">⚠️</span>
+                <span className="flex-1">{deleteError}</span>
+              </div>
+            )}
+
             <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
               <button
                 type="button"
-                onClick={() => setDeleteTarget(null)}
+                onClick={() => {
+                  setDeleteTarget(null);
+                  setDeleteError(null);
+                }}
                 className="px-4 py-2 text-sm font-medium text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
               >
-                Cancel
+                {deleteError ? "Close" : "Cancel"}
               </button>
-              <button
-                type="button"
-                onClick={handleDeleteConfirm}
-                disabled={deleting}
-                className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-lg transition-colors"
-              >
-                {deleting ? "Deleting..." : "Confirm Delete"}
-              </button>
+              {deleteError && deleteTarget.isAvailable ? (
+                <button
+                  type="button"
+                  onClick={async () => {
+                    await handleToggleAvailability(deleteTarget);
+                    setDeleteTarget(null);
+                    setDeleteError(null);
+                  }}
+                  className="px-4 py-2 text-sm font-semibold text-slate-950 bg-amber-500 hover:bg-amber-600 rounded-lg transition-colors"
+                >
+                  Disable Dish Instead
+                </button>
+              ) : !deleteError ? (
+                <button
+                  type="button"
+                  onClick={handleDeleteConfirm}
+                  disabled={deleting}
+                  className="px-4 py-2 text-sm font-semibold text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 rounded-lg transition-colors"
+                >
+                  {deleting ? "Deleting..." : "Confirm Delete"}
+                </button>
+              ) : null}
             </div>
           </div>
         </div>

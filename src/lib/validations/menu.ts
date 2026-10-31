@@ -58,3 +58,4 @@ export const deleteMenuItemSchema = z.object({
 export type CreateMenuItemInput = z.infer<typeof createMenuItemSchema>;
 export type UpdateMenuItemInput = z.infer<typeof updateMenuItemSchema>;
 export type ToggleAvailabilityInput = z.infer<typeof toggleAvailabilitySchema>;
+

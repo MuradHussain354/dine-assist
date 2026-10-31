@@ -205,6 +205,17 @@ export async function DELETE(request: Request) {
       );
     }
 
+    const orderCount = await prisma.orderItem.count({
+      where: { menuItemId: result.data.id },
+    });
+
+    if (orderCount > 0) {
+      return NextResponse.json(
+        { error: "This dish has past orders. Disable it instead." },
+        { status: 409 }
+      );
+    }
+
     await prisma.menuItem.delete({
       where: { id: result.data.id },
     });
@@ -218,3 +229,4 @@ export async function DELETE(request: Request) {
     );
   }
 }
+
