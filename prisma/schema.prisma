@@ -41,6 +41,8 @@ model Order {
   updatedAt   DateTime     @updatedAt
   items       OrderItem[]
   events      OrderEvent[]
+
+  @@index([createdAt])
 }
 
 model OrderItem {
@@ -59,6 +61,8 @@ model OrderEvent {
   order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   status    String
   createdAt DateTime @default(now())
+
+  @@index([orderId])
 }
 
 model ChatLog {
@@ -72,4 +76,6 @@ model ChatLog {
   latencyMs          Int
   recommendedItemIds String      // JSON string
   createdAt          DateTime    @default(now())
+
+  @@index([createdAt])
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import AdminNav from "@/components/admin/admin-nav";
 
 interface MenuItem {
   id: string;
@@ -81,15 +82,6 @@ export default function AdminMenuPage() {
   useEffect(() => {
     fetchItems();
   }, [fetchItems]);
-
-  const handleLogout = async () => {
-    try {
-      await fetch("/api/admin/logout", { method: "POST" });
-    } finally {
-      router.push("/admin/login");
-      router.refresh();
-    }
-  };
 
   // Open modal for Create
   const handleOpenAdd = () => {
@@ -311,34 +303,7 @@ export default function AdminMenuPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
       {/* Top Navigation */}
-      <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center font-bold">
-              🍴
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-white tracking-tight">
-                Dine-Assist
-              </h1>
-              <p className="text-xs text-slate-400">Admin Control Panel</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Authenticated
-            </span>
-            <button
-              onClick={handleLogout}
-              className="text-sm font-medium text-slate-300 hover:text-white px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 transition-colors"
-            >
-              Sign Out
-            </button>
-          </div>
-        </div>
-      </header>
+      <AdminNav />
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">

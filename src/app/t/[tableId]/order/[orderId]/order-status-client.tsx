@@ -353,3 +353,4 @@ export default function OrderStatusClient({ table, initialOrder }: Props) {
     </div>
   );
 }
+

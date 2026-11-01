@@ -11,7 +11,8 @@
     "try-chat": "tsx scripts/try-chat.ts",
     "test:recommender": "tsx scripts/test-recommender.ts",
     "test:orders": "tsx scripts/test-orders.ts",
-    "test:lifecycle": "tsx scripts/test-lifecycle.ts"
+    "test:lifecycle": "tsx scripts/test-lifecycle.ts",
+    "test:analytics": "tsx scripts/test-analytics.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

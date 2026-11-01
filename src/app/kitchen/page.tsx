@@ -41,3 +41,4 @@ export default async function KitchenPage() {
 
   return <KitchenBoardClient initialOrders={formattedOrders} />;
 }
+
