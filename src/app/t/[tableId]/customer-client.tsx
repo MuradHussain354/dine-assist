@@ -932,3 +932,4 @@ export default function CustomerOrderingClient({ table, menuItems }: Props) {
     </div>
   );
 }
+
