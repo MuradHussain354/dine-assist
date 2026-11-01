@@ -31,14 +31,16 @@ model DiningTable {
 }
 
 model Order {
-  id          String      @id @default(cuid())
+  id          String       @id @default(cuid())
   tableId     String
-  table       DiningTable @relation(fields: [tableId], references: [id])
-  status      String      @default("placed") // placed | preparing | ready | served | cancelled
+  table       DiningTable  @relation(fields: [tableId], references: [id])
+  status      String       @default("placed") // placed | preparing | ready | served | cancelled
   totalAmount Int
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
+  note        String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
   items       OrderItem[]
+  events      OrderEvent[]
 }
 
 model OrderItem {
@@ -49,6 +51,14 @@ model OrderItem {
   menuItem   MenuItem @relation(fields: [menuItemId], references: [id])
   quantity   Int
   unitPrice  Int      // snapshot at order time
+}
+
+model OrderEvent {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  status    String
+  createdAt DateTime @default(now())
 }
 
 model ChatLog {

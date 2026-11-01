@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { createOrderSchema } from "@/lib/validations/order";
+import { orderEventsBus, ORDER_EVENTS } from "@/lib/orders/events";
 
 export async function POST(request: Request) {
   try {
@@ -18,7 +19,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { tableId, items } = parseResult.data;
+    const { tableId, items, note } = parseResult.data;
 
     // 1. Verify dining table exists (by CUID or numeric table number)
     const parsedNum = parseInt(tableId, 10);
@@ -109,18 +110,50 @@ export async function POST(request: Request) {
       });
     }
 
-    // 5. Create Order and OrderItems in one transaction
+    // 5. Create Order, OrderItems, and initial OrderEvent in one transaction
     const order = await prisma.$transaction(async (tx) => {
       return tx.order.create({
         data: {
           tableId: table.id,
           status: "placed",
           totalAmount: computedTotal,
+          note: note ? note.trim() : null,
           items: {
             create: orderItemsCreateData,
           },
+          events: {
+            create: [
+              {
+                status: "placed",
+              },
+            ],
+          },
+        },
+        include: {
+          items: {
+            include: {
+              menuItem: true,
+            },
+          },
         },
       });
+    });
+
+    // 6. Emit order created event for kitchen board
+    orderEventsBus.emit(ORDER_EVENTS.ORDER_CREATED, {
+      orderId: order.id,
+      tableId: table.id,
+      tableNumber: table.number,
+      status: "placed",
+      totalAmount: order.totalAmount,
+      note: order.note,
+      items: order.items.map((i) => ({
+        name: i.menuItem.name,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+      })),
+      createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
     });
 
     return NextResponse.json(
