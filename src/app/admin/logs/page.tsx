@@ -34,3 +34,4 @@ export default async function AdminLogsPage() {
 
   return <LogsClient initialLogs={serializedLogs} />;
 }
+
