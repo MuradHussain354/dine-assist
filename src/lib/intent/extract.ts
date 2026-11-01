@@ -1,4 +1,4 @@
-import { getProvider } from "../llm";
+import { getProvider, LLMProvider } from "../llm";
 import { intentSchema, Intent } from "./schema";
 import { SYSTEM_PROMPT } from "./prompt";
 import {
@@ -28,7 +28,7 @@ export interface ExtractResult {
  * Grounding guard: resets LLM-inferred fields that the user query
  * doesn't actually mention, preventing hallucinated constraints.
  */
-function applyGroundingGuard(
+export function applyGroundingGuard(
   intent: Intent,
   query: string
 ): { corrected: Intent; adjustments: string[] } {
@@ -57,91 +57,140 @@ function applyGroundingGuard(
   return { corrected, adjustments };
 }
 
-export async function extractIntent(query: string): Promise<ExtractResult> {
+/**
+ * Stage A helper: Strip code fences, parse JSON, and validate against intentSchema.
+ */
+export type ParseLlmResult =
+  | { success: true; data: Intent; parsed: unknown }
+  | {
+      success: false;
+      reason: "invalid_json" | "schema_validation";
+      error: unknown;
+      raw: string;
+    };
+
+export function parseAndValidateLlmOutput(rawOutput: string): ParseLlmResult {
+  let cleaned = rawOutput.trim();
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned
+      .replace(/^```(?:json)?\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (err) {
+    return {
+      success: false,
+      reason: "invalid_json",
+      error: err,
+      raw: cleaned,
+    };
+  }
+
+  const result = intentSchema.safeParse(parsed);
+  if (!result.success) {
+    return {
+      success: false,
+      reason: "schema_validation",
+      error: result.error,
+      raw: cleaned,
+    };
+  }
+
+  return { success: true, data: result.data, parsed };
+}
+
+/**
+ * Stage LLM Call helper: executes the raw LLM call with timing and error handling.
+ */
+export interface CallLlmResult {
+  rawLlmOutput: string | null;
+  latencyMs: number;
+  error: Error | null;
+  isTimeout: boolean;
+}
+
+export async function executeLlmCall(
+  query: string,
+  options?: { provider?: LLMProvider; systemPrompt?: string }
+): Promise<CallLlmResult> {
   const startTime = performance.now();
-  let rawLlmOutput: string | null = null;
+  const provider = options?.provider ?? getProvider();
+  const systemPrompt = options?.systemPrompt ?? SYSTEM_PROMPT;
 
   try {
-    const provider = getProvider();
-    rawLlmOutput = await provider.generateJson(SYSTEM_PROMPT, query);
-
-    let cleaned = rawLlmOutput.trim();
-    if (cleaned.startsWith("```")) {
-      cleaned = cleaned
-        .replace(/^```(?:json)?\s*/i, "")
-        .replace(/\s*```$/i, "")
-        .trim();
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(cleaned);
-    } catch {
-      console.warn("LLM returned invalid JSON, using fallback:", cleaned);
-      const fallbackIntent = extractFallbackIntent(query);
-      const latencyMs = Math.round(performance.now() - startTime);
-      return {
-        intent: fallbackIntent,
-        usedFallback: true,
-        fallbackReason: "invalid_json",
-        latencyMs,
-        rawLlmOutput,
-        adjustments: [],
-      };
-    }
-
-    const result = intentSchema.safeParse(parsed);
-
-    if (result.success) {
-      const { corrected, adjustments } = applyGroundingGuard(
-        result.data,
-        query
-      );
-      const latencyMs = Math.round(performance.now() - startTime);
-      return {
-        intent: corrected,
-        usedFallback: false,
-        fallbackReason: null,
-        latencyMs,
-        rawLlmOutput,
-        adjustments,
-      };
-    }
-
-    console.warn(
-      "Intent Zod validation failed, using fallback:",
-      result.error
-    );
-    const fallbackIntent = extractFallbackIntent(query);
+    const rawLlmOutput = await provider.generateJson(systemPrompt, query);
     const latencyMs = Math.round(performance.now() - startTime);
-    return {
-      intent: fallbackIntent,
-      usedFallback: true,
-      fallbackReason: "schema_validation",
-      latencyMs,
-      rawLlmOutput,
-      adjustments: [],
-    };
-  } catch (error) {
+    return { rawLlmOutput, latencyMs, error: null, isTimeout: false };
+  } catch (err) {
+    const latencyMs = Math.round(performance.now() - startTime);
     const isTimeout =
-      error instanceof Error &&
-      (error.name === "AbortError" || error.message.includes("abort"));
-
-    console.warn(
-      `LLM extraction failed (${isTimeout ? "timeout" : "provider_error"}), using fallback:`,
-      error
-    );
-
-    const fallbackIntent = extractFallbackIntent(query);
-    const latencyMs = Math.round(performance.now() - startTime);
-
+      err instanceof Error &&
+      (err.name === "AbortError" || err.message.includes("abort"));
     return {
-      intent: fallbackIntent,
-      usedFallback: true,
-      fallbackReason: isTimeout ? "timeout" : "provider_error",
+      rawLlmOutput: null,
       latencyMs,
-      rawLlmOutput,
-      adjustments: [],
+      error: err instanceof Error ? err : new Error(String(err)),
+      isTimeout,
     };
   }
 }
+
+export async function extractIntent(query: string): Promise<ExtractResult> {
+  const llmRes = await executeLlmCall(query);
+
+  if (llmRes.error || llmRes.rawLlmOutput === null) {
+    const fallbackIntent = extractFallbackIntent(query);
+    return {
+      intent: fallbackIntent,
+      usedFallback: true,
+      fallbackReason: llmRes.isTimeout ? "timeout" : "provider_error",
+      latencyMs: llmRes.latencyMs,
+      rawLlmOutput: null,
+      adjustments: [],
+    };
+  }
+
+  const parseResult = parseAndValidateLlmOutput(llmRes.rawLlmOutput);
+
+  if (!parseResult.success) {
+    if (parseResult.reason === "invalid_json") {
+      console.warn(
+        "LLM returned invalid JSON, using fallback:",
+        parseResult.raw
+      );
+    } else {
+      console.warn(
+        "Intent Zod validation failed, using fallback:",
+        parseResult.error
+      );
+    }
+    const fallbackIntent = extractFallbackIntent(query);
+    return {
+      intent: fallbackIntent,
+      usedFallback: true,
+      fallbackReason: parseResult.reason,
+      latencyMs: llmRes.latencyMs,
+      rawLlmOutput: llmRes.rawLlmOutput,
+      adjustments: [],
+    };
+  }
+
+  const { corrected, adjustments } = applyGroundingGuard(
+    parseResult.data,
+    query
+  );
+  return {
+    intent: corrected,
+    usedFallback: false,
+    fallbackReason: null,
+    latencyMs: llmRes.latencyMs,
+    rawLlmOutput: llmRes.rawLlmOutput,
+    adjustments,
+  };
+}
+
+export { extractFallbackIntent };

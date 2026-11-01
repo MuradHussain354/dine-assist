@@ -12,7 +12,9 @@
     "test:recommender": "tsx scripts/test-recommender.ts",
     "test:orders": "tsx scripts/test-orders.ts",
     "test:lifecycle": "tsx scripts/test-lifecycle.ts",
-    "test:analytics": "tsx scripts/test-analytics.ts"
+    "test:analytics": "tsx scripts/test-analytics.ts",
+    "test:eval": "tsx scripts/eval/test-scoring.ts",
+    "eval": "tsx scripts/eval/run.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
