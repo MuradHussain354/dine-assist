@@ -1,6 +1,6 @@
 import { Intent } from "./schema";
 
-const NUMBER_WORDS: Record<string, number> = {
+export const NUMBER_WORDS: Record<string, number> = {
   one: 1,
   two: 2,
   three: 3,
@@ -14,15 +14,46 @@ const NUMBER_WORDS: Record<string, number> = {
   couple: 2,
 };
 
-// Exported keyword patterns for reuse in grounding guard
+// Exported keyword patterns for reuse in grounding guard and rules layer
 export const DIET_KEYWORDS =
-  /\b(?:vegan|vegetarian|pure\s+veg(?:etarian)?|veg|non-?veg|chicken|mutton|fish|prawns?|meat|lamb|seafood|no\s+meat|egg)\b/i;
+  /\b(?:vegan|plant-?based|plant\s+based|vegetarian|pure\s+veg(?:etarian)?|veg|non-?veg|chicken|mutton|fish|prawns?|meat|lamb|seafood|no\s+meat|egg)\b/i;
 
 export const SPICE_KEYWORDS =
   /\b(?:spicy|spice|mild|hot|fiery|medium\s+spic(?:y|e)|not\s+too\s+spicy|not\s+spicy|low\s+spice|extra\s+spicy|very\s+spicy|no\s+spice|zero\s+spice|bland|mildly\s+spicy|little\s+spicy|moderate\s+spice|super\s+spicy)\b/i;
 
 export const BUDGET_NUMBER_PATTERN =
   /\d+/;
+
+export const PER_PERSON_PATTERN =
+  /(?:\b(?:per\s+(?:person|head|pax|each)|a\s+head|pp|each)\b|\/(?:person|head)\b)/i;
+
+export const BUDGET_AMOUNT_PATTERNS = [
+  /(?:under|below|within|less\s+than|upto|up\s+to|around|budget(?:\s+of)?|max)?\s*(?:rs\.?|inr|₹)\s*(\d+(?:,\d+)?(?:\.\d+)?)\s*(k|thousand)?\b/i,
+  /\b(\d+(?:,\d+)?(?:\.\d+)?)\s*(k|thousand)?\s*(?:rupees|rs\.?|inr|₹)\b/i,
+  /(?:under|below|within|less\s+than|upto|up\s+to|around|budget(?:\s+of)?|max)\s*(\d+(?:,\d+)?(?:\.\d+)?)\s*(k|thousand)?\b/i,
+  /\b(\d+(?:,\d+)?(?:\.\d+)?)\s*(k)\b/i,
+];
+
+export function extractBudgetAmount(
+  text: string
+): { amount: number; matchedText: string } | null {
+  for (const pattern of BUDGET_AMOUNT_PATTERNS) {
+    const match = text.match(pattern);
+    if (match && match[1]) {
+      let rawNum = parseFloat(match[1].replace(/,/g, ""));
+      if (
+        match[2] &&
+        (match[2].toLowerCase() === "k" || match[2].toLowerCase() === "thousand")
+      ) {
+        rawNum = rawNum * 1000;
+      }
+      if (!isNaN(rawNum) && rawNum > 0) {
+        return { amount: Math.round(rawNum), matchedText: match[0] };
+      }
+    }
+  }
+  return null;
+}
 
 export function extractFallbackIntent(query: string): Intent {
   const text = query.trim().toLowerCase();
@@ -75,23 +106,10 @@ export function extractFallbackIntent(query: string): Intent {
 
   // 4. Budget
   let budgetTotal: number | null = null;
-  const isPerPerson = /\b(?:per\s+(?:person|head|pax|each)|a\s+head|\/person|\/head|each)\b/.test(text);
-
-  const amountPatterns = [
-    /(?:under|below|within|less\s+than|upto|up\s+to|around|budget(?:\s+of)?|max)?\s*(?:rs\.?|inr|₹)\s*(\d+(?:,\d+)?)\b/,
-    /\b(\d+(?:,\d+)?)\s*(?:rupees|rs\.?|inr|₹)/,
-    /(?:under|below|within|less\s+than|upto|up\s+to|around|budget(?:\s+of)?|max)\s*(\d+(?:,\d+)?)\b/,
-  ];
-
-  for (const pattern of amountPatterns) {
-    const match = text.match(pattern);
-    if (match && match[1]) {
-      const rawNum = parseInt(match[1].replace(/,/g, ""), 10);
-      if (!isNaN(rawNum) && rawNum > 0) {
-        budgetTotal = isPerPerson ? rawNum * partySize : rawNum;
-        break;
-      }
-    }
+  const isPerPerson = PER_PERSON_PATTERN.test(text);
+  const budgetMatch = extractBudgetAmount(text);
+  if (budgetMatch) {
+    budgetTotal = isPerPerson ? budgetMatch.amount * partySize : budgetMatch.amount;
   }
 
   // 5. Exclusions

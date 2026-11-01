@@ -2,11 +2,17 @@ import { Intent } from "../../src/lib/intent/schema";
 import {
   parseAndValidateLlmOutput,
   applyGroundingGuard,
+  applyPostProcessingRules,
   extractFallbackIntent,
 } from "../../src/lib/intent/extract";
 import { EvalQuery } from "./loader";
 
-export type ConfigId = "llm_only" | "llm_guard" | "full_pipeline" | "fallback_only";
+export type ConfigId =
+  | "llm_only"
+  | "llm_guard"
+  | "llm_guard_rules"
+  | "full_pipeline"
+  | "fallback_only";
 
 export interface RawQueryOutput {
   id: number;
@@ -185,8 +191,12 @@ export function evaluateQueryUnderConfig(
           got = parsed.data;
         } else if (config === "llm_guard") {
           got = applyGroundingGuard(parsed.data, query.query).corrected;
+        } else if (config === "llm_guard_rules") {
+          const guarded = applyGroundingGuard(parsed.data, query.query).corrected;
+          got = applyPostProcessingRules(guarded, query.query).processed;
         } else if (config === "full_pipeline") {
-          got = applyGroundingGuard(parsed.data, query.query).corrected;
+          const guarded = applyGroundingGuard(parsed.data, query.query).corrected;
+          got = applyPostProcessingRules(guarded, query.query).processed;
           usedFallback = false;
         }
       } else {
@@ -195,7 +205,7 @@ export function evaluateQueryUnderConfig(
           got = extractFallbackIntent(query.query);
           usedFallback = true;
         } else {
-          got = null; // Configuration a and b treat invalid schema/json as failed
+          got = null; // Configuration a, b, and e treat invalid schema/json as failed
         }
       }
     } else {
@@ -204,7 +214,7 @@ export function evaluateQueryUnderConfig(
         got = extractFallbackIntent(query.query);
         usedFallback = true;
       } else {
-        got = null; // Configuration a and b fail on timeout/error
+        got = null; // Configuration a, b, and e fail on timeout/error
       }
     }
   }

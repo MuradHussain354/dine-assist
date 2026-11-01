@@ -18,6 +18,7 @@ interface CliOptions {
   refresh: boolean;
   split: "dev" | "test" | "all";
   failures: boolean;
+  tag?: string;
 }
 
 function parseCliArgs(): CliOptions {
@@ -26,6 +27,7 @@ function parseCliArgs(): CliOptions {
   let refresh = false;
   let split: "dev" | "test" | "all" = "all";
   let failures = false;
+  let tag: string | undefined = undefined;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -37,6 +39,10 @@ function parseCliArgs(): CliOptions {
       refresh = true;
     } else if (arg === "--failures") {
       failures = true;
+    } else if (arg === "--tag" && i + 1 < args.length) {
+      tag = args[++i];
+    } else if (arg.startsWith("--tag=")) {
+      tag = arg.split("=")[1];
     } else if (arg === "--split" && i + 1 < args.length) {
       const val = args[++i].toLowerCase();
       if (val === "dev" || val === "test" || val === "all") {
@@ -50,7 +56,7 @@ function parseCliArgs(): CliOptions {
     }
   }
 
-  return { model, refresh, split, failures };
+  return { model, refresh, split, failures, tag };
 }
 
 function formatDuration(ms: number): string {
@@ -246,10 +252,11 @@ async function main() {
     if (item) rawOutputs.push(item);
   }
 
-  // Score all 4 configurations for all queries
+  // Score all 5 configurations for all queries
   const configs: ConfigId[] = [
     "llm_only",
     "llm_guard",
+    "llm_guard_rules",
     "full_pipeline",
     "fallback_only",
   ];
@@ -257,6 +264,7 @@ async function main() {
   const allScored: Record<ConfigId, ScoredQuery[]> = {
     llm_only: [],
     llm_guard: [],
+    llm_guard_rules: [],
     full_pipeline: [],
     fallback_only: [],
   };
@@ -320,6 +328,12 @@ async function main() {
         .filter((r) => devQueries.some((q) => q.id === r.id))
         .map((r) => r.latencyMs)
     ),
+    llm_guard_rules: aggregateMetrics(
+      allScored.llm_guard_rules.filter((s) => s.split === "dev"),
+      rawOutputs
+        .filter((r) => devQueries.some((q) => q.id === r.id))
+        .map((r) => r.latencyMs)
+    ),
     full_pipeline: aggregateMetrics(
       allScored.full_pipeline.filter((s) => s.split === "dev"),
       rawOutputs
@@ -345,6 +359,12 @@ async function main() {
         .filter((r) => testQueries.some((q) => q.id === r.id))
         .map((r) => r.latencyMs)
     ),
+    llm_guard_rules: aggregateMetrics(
+      allScored.llm_guard_rules.filter((s) => s.split === "test"),
+      rawOutputs
+        .filter((r) => testQueries.some((q) => q.id === r.id))
+        .map((r) => r.latencyMs)
+    ),
     full_pipeline: aggregateMetrics(
       allScored.full_pipeline.filter((s) => s.split === "test"),
       rawOutputs
@@ -360,6 +380,7 @@ async function main() {
   const metricsAll: Record<ConfigId, ReturnType<typeof aggregateMetrics>> = {
     llm_only: aggregateMetrics(allScored.llm_only, latencies),
     llm_guard: aggregateMetrics(allScored.llm_guard, latencies),
+    llm_guard_rules: aggregateMetrics(allScored.llm_guard_rules, latencies),
     full_pipeline: aggregateMetrics(allScored.full_pipeline, latencies),
     fallback_only: aggregateMetrics(allScored.fallback_only, []),
   };
@@ -369,6 +390,7 @@ async function main() {
   const configLabels: Record<ConfigId, string> = {
     llm_only: "LLM Only (a)",
     llm_guard: "LLM + Guard (b)",
+    llm_guard_rules: "LLM + Guard + Rules (e)",
     full_pipeline: "Full Pipeline (c)",
     fallback_only: "Fallback Only (d)",
   };
@@ -380,6 +402,9 @@ async function main() {
   mdReportLines.push(`# Evaluation Report: ${options.model}`);
   mdReportLines.push(`- **Date**: ${dateStr}`);
   mdReportLines.push(`- **Model**: \`${options.model}\``);
+  if (options.tag) {
+    mdReportLines.push(`- **Tag**: \`${options.tag}\``);
+  }
   mdReportLines.push(
     `- **Dataset**: ${queries.length} queries (${devQueries.length} dev, ${testQueries.length} test)`
   );
@@ -454,13 +479,17 @@ async function main() {
   const mdReport = mdReportLines.join("\n");
 
   // Write markdown report
-  const reportPath = path.join(resultsDir, `${sanitizedModel}-${dateStr}.md`);
+  const fileSuffix = options.tag ? `-${options.tag}` : "";
+  const reportPath = path.join(
+    resultsDir,
+    `${sanitizedModel}-${dateStr}${fileSuffix}.md`
+  );
   fs.writeFileSync(reportPath, mdReport, "utf-8");
 
   // Write failures json
   const failuresPath = path.join(
     resultsDir,
-    `${sanitizedModel}-${dateStr}-failures.json`
+    `${sanitizedModel}-${dateStr}${fileSuffix}-failures.json`
   );
   fs.writeFileSync(failuresPath, JSON.stringify(allFailures, null, 2), "utf-8");
 

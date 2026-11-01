@@ -7,6 +7,7 @@ import {
   SPICE_KEYWORDS,
   BUDGET_NUMBER_PATTERN,
 } from "./fallback";
+import { applyPostProcessingRules } from "./postprocess";
 
 export type FallbackReason =
   | "timeout"
@@ -179,18 +180,24 @@ export async function extractIntent(query: string): Promise<ExtractResult> {
     };
   }
 
-  const { corrected, adjustments } = applyGroundingGuard(
+  const { corrected, adjustments: guardAdjustments } = applyGroundingGuard(
     parseResult.data,
     query
   );
+
+  const { processed, adjustments: ruleAdjustments } = applyPostProcessingRules(
+    corrected,
+    query
+  );
+
   return {
-    intent: corrected,
+    intent: processed,
     usedFallback: false,
     fallbackReason: null,
     latencyMs: llmRes.latencyMs,
     rawLlmOutput: llmRes.rawLlmOutput,
-    adjustments,
+    adjustments: [...guardAdjustments, ...ruleAdjustments],
   };
 }
 
-export { extractFallbackIntent };
+export { extractFallbackIntent, applyPostProcessingRules };
