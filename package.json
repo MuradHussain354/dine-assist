@@ -9,7 +9,8 @@
     "lint": "next lint",
     "seed": "tsx prisma/seed.ts",
     "try-chat": "tsx scripts/try-chat.ts",
-    "test:recommender": "tsx scripts/test-recommender.ts"
+    "test:recommender": "tsx scripts/test-recommender.ts",
+    "test:orders": "tsx scripts/test-orders.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
