@@ -11,11 +11,13 @@ import {
 } from "./scoring";
 import { OllamaProvider } from "../../src/lib/llm/ollama";
 import { executeLlmCall } from "../../src/lib/intent/extract";
+import { Intent } from "../../src/lib/intent/schema";
 
 interface CliOptions {
   model: string;
   refresh: boolean;
   split: "dev" | "test" | "all";
+  failures: boolean;
 }
 
 function parseCliArgs(): CliOptions {
@@ -23,6 +25,7 @@ function parseCliArgs(): CliOptions {
   let model = process.env.OLLAMA_MODEL || "llama3.2:3b";
   let refresh = false;
   let split: "dev" | "test" | "all" = "all";
+  let failures = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -32,6 +35,8 @@ function parseCliArgs(): CliOptions {
       model = arg.split("=")[1];
     } else if (arg === "--refresh") {
       refresh = true;
+    } else if (arg === "--failures") {
+      failures = true;
     } else if (arg === "--split" && i + 1 < args.length) {
       const val = args[++i].toLowerCase();
       if (val === "dev" || val === "test" || val === "all") {
@@ -45,7 +50,7 @@ function parseCliArgs(): CliOptions {
     }
   }
 
-  return { model, refresh, split };
+  return { model, refresh, split, failures };
 }
 
 function formatDuration(ms: number): string {
@@ -62,6 +67,61 @@ function getTodayString(): string {
   const mm = String(now.getMonth() + 1).padStart(2, "0");
   const dd = String(now.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
+}
+
+function formatFieldValue(val: unknown): string {
+  if (val === null || val === undefined) return "null";
+  if (typeof val === "string") return JSON.stringify(val);
+  if (Array.isArray(val)) return JSON.stringify(val);
+  return String(val);
+}
+
+function formatDifferences(
+  expected: EvalQuery["expected"],
+  got: Intent | null,
+  fieldMatches: ScoredQuery["fieldMatches"]
+): string {
+  const fields: Array<keyof Intent> = [
+    "diet",
+    "spice_level",
+    "budget_total",
+    "party_size",
+    "exclusions",
+    "cuisine",
+  ];
+
+  const diffs: string[] = [];
+  for (const f of fields) {
+    if (!fieldMatches[f]) {
+      const expStr = formatFieldValue(expected[f]);
+      const gotStr = formatFieldValue(got ? got[f] : null);
+      diffs.push(`${f}: expected ${expStr}, got ${gotStr}`);
+    }
+  }
+
+  return diffs.join("; ");
+}
+
+function buildFailuresTable(failures: ScoredQuery[]): string {
+  if (failures.length === 0) {
+    return "## Failed Queries (Full Pipeline - Config c)\n\nNo failures found.";
+  }
+
+  const lines: string[] = [
+    "## Failed Queries (Full Pipeline - Config c)",
+    "| ID | Split | Category | Query | Differing Fields (Expected vs Got) |",
+    "| :--- | :--- | :--- | :--- | :--- |",
+  ];
+
+  for (const s of failures) {
+    const cleanQuery = s.query.replace(/\|/g, "\\|").replace(/\r?\n/g, " ");
+    const diffs = formatDifferences(s.expected, s.got, s.fieldMatches);
+    lines.push(
+      `| ${s.id} | ${s.split} | ${s.category} | ${cleanQuery} | ${diffs} |`
+    );
+  }
+
+  return lines.join("\n");
 }
 
 async function main() {
@@ -378,6 +438,18 @@ async function main() {
     );
   }
   mdReportLines.push("");
+
+  // 4. Compact failure table for Configuration (c) if --failures flag is passed
+  if (options.failures) {
+    const pipelineFailures = allScored.full_pipeline.filter((s) => {
+      if (s.isExactMatch) return false;
+      if (options.split !== "all" && s.split !== options.split) return false;
+      return true;
+    });
+
+    mdReportLines.push(buildFailuresTable(pipelineFailures));
+    mdReportLines.push("");
+  }
 
   const mdReport = mdReportLines.join("\n");
 
