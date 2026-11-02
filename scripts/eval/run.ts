@@ -19,6 +19,7 @@ interface CliOptions {
   split: "dev" | "test" | "all";
   failures: boolean;
   tag?: string;
+  queriesPath?: string;
 }
 
 function parseCliArgs(): CliOptions {
@@ -28,6 +29,7 @@ function parseCliArgs(): CliOptions {
   let split: "dev" | "test" | "all" = "all";
   let failures = false;
   let tag: string | undefined = undefined;
+  let queriesPath: string | undefined = undefined;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
@@ -43,6 +45,10 @@ function parseCliArgs(): CliOptions {
       tag = args[++i];
     } else if (arg.startsWith("--tag=")) {
       tag = arg.split("=")[1];
+    } else if (arg === "--queries" && i + 1 < args.length) {
+      queriesPath = args[++i];
+    } else if (arg.startsWith("--queries=")) {
+      queriesPath = arg.split("=")[1];
     } else if (arg === "--split" && i + 1 < args.length) {
       const val = args[++i].toLowerCase();
       if (val === "dev" || val === "test" || val === "all") {
@@ -56,7 +62,7 @@ function parseCliArgs(): CliOptions {
     }
   }
 
-  return { model, refresh, split, failures, tag };
+  return { model, refresh, split, failures, tag, queriesPath };
 }
 
 function formatDuration(ms: number): string {
@@ -132,7 +138,10 @@ function buildFailuresTable(failures: ScoredQuery[]): string {
 
 async function main() {
   const options = parseCliArgs();
-  const queries = loadEvalQueries();
+  const resolvedQueriesPath = options.queriesPath
+    ? path.resolve(process.cwd(), options.queriesPath)
+    : undefined;
+  const queries = loadEvalQueries(resolvedQueriesPath);
   const sanitizedModel = options.model.replace(/:/g, "-");
 
   const resultsDir = path.resolve(process.cwd(), "eval-results");
@@ -404,6 +413,9 @@ async function main() {
   mdReportLines.push(`- **Model**: \`${options.model}\``);
   if (options.tag) {
     mdReportLines.push(`- **Tag**: \`${options.tag}\``);
+  }
+  if (options.queriesPath) {
+    mdReportLines.push(`- **Queries**: \`${options.queriesPath}\``);
   }
   mdReportLines.push(
     `- **Dataset**: ${queries.length} queries (${devQueries.length} dev, ${testQueries.length} test)`
