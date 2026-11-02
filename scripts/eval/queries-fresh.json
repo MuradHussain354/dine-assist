@@ -1,0 +1,429 @@
+[
+    {
+        "id": 101,
+        "split": "test",
+        "category": "straightforward",
+        "query": "vegetarian lunch for two, mild, under 1400",
+        "expected": {
+            "diet": "veg",
+            "spice_level": 1,
+            "budget_total": 1400,
+            "party_size": 2,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 102,
+        "split": "test",
+        "category": "straightforward",
+        "query": "chicken kottu for two under 1500",
+        "expected": {
+            "diet": "non-veg",
+            "spice_level": null,
+            "budget_total": 1500,
+            "party_size": 2,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 103,
+        "split": "test",
+        "category": "straightforward",
+        "query": "I'm vegan, medium spice, just me",
+        "expected": {
+            "diet": "vegan",
+            "spice_level": 2,
+            "budget_total": null,
+            "party_size": 1,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 104,
+        "split": "test",
+        "category": "straightforward",
+        "query": "south indian vegetarian meal for three, around 2000",
+        "expected": {
+            "diet": "veg",
+            "spice_level": null,
+            "budget_total": 2000,
+            "party_size": 3,
+            "exclusions": [],
+            "cuisine": "south indian"
+        }
+    },
+    {
+        "id": 105,
+        "split": "test",
+        "category": "straightforward",
+        "query": "continental dinner for two, non-veg, up to 3000",
+        "expected": {
+            "diet": "non-veg",
+            "spice_level": null,
+            "budget_total": 3000,
+            "party_size": 2,
+            "exclusions": [],
+            "cuisine": "continental"
+        }
+    },
+    {
+        "id": 106,
+        "split": "test",
+        "category": "straightforward",
+        "query": "chinese food for 3, not spicy at all",
+        "expected": {
+            "diet": "any",
+            "spice_level": 0,
+            "budget_total": null,
+            "party_size": 3,
+            "exclusions": [],
+            "cuisine": "chinese"
+        }
+    },
+    {
+        "id": 107,
+        "split": "test",
+        "category": "budget",
+        "query": "300 per person for 4",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": 1200,
+            "party_size": 4,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 108,
+        "split": "test",
+        "category": "budget",
+        "query": "Rs 450 a head, we are 3",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": 1350,
+            "party_size": 3,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 109,
+        "split": "test",
+        "category": "budget",
+        "query": "about 700 apiece, party of 3",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": 2100,
+            "party_size": 3,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 110,
+        "split": "test",
+        "category": "budget",
+        "query": "up to 2.5k for four people",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": 2500,
+            "party_size": 4,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 111,
+        "split": "test",
+        "category": "budget",
+        "query": "within Rs. 1,800 for two",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": 1800,
+            "party_size": 2,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 112,
+        "split": "test",
+        "category": "budget",
+        "query": "max budget twelve hundred, just me",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": 1200,
+            "party_size": 1,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 113,
+        "split": "test",
+        "category": "party_size",
+        "query": "my parents and I, vegetarian, under 3000",
+        "expected": {
+            "diet": "veg",
+            "spice_level": null,
+            "budget_total": 3000,
+            "party_size": 3,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 114,
+        "split": "test",
+        "category": "party_size",
+        "query": "dinner with my girlfriend",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": null,
+            "party_size": 2,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 115,
+        "split": "test",
+        "category": "party_size",
+        "query": "birthday party for ten",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": null,
+            "party_size": 10,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 116,
+        "split": "test",
+        "category": "party_size",
+        "query": "me and my friends, five of us, under 5000",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": 5000,
+            "party_size": 5,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 117,
+        "split": "test",
+        "category": "party_size",
+        "query": "the whole team of 8, budget 8000",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": 8000,
+            "party_size": 8,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 118,
+        "split": "test",
+        "category": "spice",
+        "query": "make it fiery, two people",
+        "expected": {
+            "diet": "any",
+            "spice_level": 3,
+            "budget_total": null,
+            "party_size": 2,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 119,
+        "split": "test",
+        "category": "spice",
+        "query": "I can't handle spice",
+        "expected": {
+            "diet": "any",
+            "spice_level": 0,
+            "budget_total": null,
+            "party_size": 1,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 120,
+        "split": "test",
+        "category": "spice",
+        "query": "low spice please, for three",
+        "expected": {
+            "diet": "any",
+            "spice_level": 1,
+            "budget_total": null,
+            "party_size": 3,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 121,
+        "split": "test",
+        "category": "spice",
+        "query": "medium heat, vegetarian, for two",
+        "expected": {
+            "diet": "veg",
+            "spice_level": 2,
+            "budget_total": null,
+            "party_size": 2,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 122,
+        "split": "test",
+        "category": "diet",
+        "query": "non vegetarian items only, 2 of us",
+        "expected": {
+            "diet": "non-veg",
+            "spice_level": null,
+            "budget_total": null,
+            "party_size": 2,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 123,
+        "split": "test",
+        "category": "diet",
+        "query": "I'm not vegetarian, under 1000",
+        "expected": {
+            "diet": "non-veg",
+            "spice_level": null,
+            "budget_total": 1000,
+            "party_size": 1,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 124,
+        "split": "test",
+        "category": "diet",
+        "query": "no meat or fish for me",
+        "expected": {
+            "diet": "veg",
+            "spice_level": null,
+            "budget_total": null,
+            "party_size": 1,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 125,
+        "split": "test",
+        "category": "diet",
+        "query": "vegan dessert and drinks for two",
+        "expected": {
+            "diet": "vegan",
+            "spice_level": null,
+            "budget_total": null,
+            "party_size": 2,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 126,
+        "split": "test",
+        "category": "exclusions",
+        "query": "no dairy, vegetarian, for two",
+        "expected": {
+            "diet": "veg",
+            "spice_level": null,
+            "budget_total": null,
+            "party_size": 2,
+            "exclusions": [
+                "dairy"
+            ],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 127,
+        "split": "test",
+        "category": "exclusions",
+        "query": "without coriander, three of us",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": null,
+            "party_size": 3,
+            "exclusions": [
+                "coriander"
+            ],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 128,
+        "split": "test",
+        "category": "exclusions",
+        "query": "no pork or beef, family of four",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": null,
+            "party_size": 4,
+            "exclusions": [
+                "pork",
+                "beef"
+            ],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 129,
+        "split": "test",
+        "category": "no_information",
+        "query": "recommend something",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": null,
+            "party_size": 1,
+            "exclusions": [],
+            "cuisine": null
+        }
+    },
+    {
+        "id": 130,
+        "split": "test",
+        "category": "no_information",
+        "query": "anything is fine",
+        "expected": {
+            "diet": "any",
+            "spice_level": null,
+            "budget_total": null,
+            "party_size": 1,
+            "exclusions": [],
+            "cuisine": null
+        }
+    }
+]

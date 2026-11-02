@@ -19,15 +19,22 @@ export const DIET_KEYWORDS =
   /\b(?:vegan|plant-?based|plant\s+based|vegetarian|pure\s+veg(?:etarian)?|veg|non-?veg|chicken|mutton|fish|prawns?|meat|lamb|seafood|no\s+meat|egg)\b/i;
 
 export const SPICE_KEYWORDS =
-  /\b(?:spicy|spice|mild|hot|fiery|medium\s+spic(?:y|e)|not\s+too\s+spicy|not\s+spicy|low\s+spice|extra\s+spicy|very\s+spicy|no\s+spice|zero\s+spice|bland|mildly\s+spicy|little\s+spicy|moderate\s+spice|super\s+spicy)\b/i;
+  /\b(?:spicy|spice|mild|hot|fiery|medium\s+spic(?:y|e)|medium\s+heat|heat|kick|chilli|chili|piquant|not\s+too\s+spicy|not\s+spicy|low\s+spice|extra\s+spicy|very\s+spicy|no\s+spice|zero\s+spice|bland|mildly\s+spicy|little\s+spicy|moderate\s+spice|super\s+spicy)\b/i;
 
 export const BUDGET_NUMBER_PATTERN =
   /\d+/;
 
+export const BUDGET_NUMBER_WORD_PATTERN =
+  /\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|hundred|thousand|lakh)\b/i;
+
+export const K_AMOUNT_PATTERN = /\b\d*k\b/i;
+
 export const PER_PERSON_PATTERN =
-  /(?:\b(?:per\s+(?:person|head|pax|each)|a\s+head|pp|each)\b|\/(?:person|head)\b)/i;
+  /(?:\b(?:per\s+(?:person|head|pax|plate|guest|diner)|a\s+(?:head|person)|pp|each|each\s+person|apiece)\b|\/(?:person|head|pax|plate|guest|diner)\b)/i;
 
 export const BUDGET_AMOUNT_PATTERNS = [
+  /\b(\d+(?:,\d+)?(?:\.\d+)?)\s*(k|thousand)?\s*(?:per\s+(?:person|head|pax|plate|guest|diner)|a\s+(?:head|person)|pp|each|each\s+person|apiece|\/(?:person|head|pax|plate|guest|diner))\b/i,
+  /(?:per\s+(?:person|head|pax|plate|guest|diner)|a\s+(?:head|person)|pp|each|each\s+person|apiece|\/(?:person|head|pax|plate|guest|diner))\s*(?:of\s+)?(?:rs\.?|inr|₹)?\s*(\d+(?:,\d+)?(?:\.\d+)?)\s*(k|thousand)?\b/i,
   /(?:under|below|within|less\s+than|upto|up\s+to|around|budget(?:\s+of)?|max)?\s*(?:rs\.?|inr|₹)\s*(\d+(?:,\d+)?(?:\.\d+)?)\s*(k|thousand)?\b/i,
   /\b(\d+(?:,\d+)?(?:\.\d+)?)\s*(k|thousand)?\s*(?:rupees|rs\.?|inr|₹)\b/i,
   /(?:under|below|within|less\s+than|upto|up\s+to|around|budget(?:\s+of)?|max)\s*(\d+(?:,\d+)?(?:\.\d+)?)\s*(k|thousand)?\b/i,
@@ -54,6 +61,17 @@ export function extractBudgetAmount(
   }
   return null;
 }
+
+export const KNOWN_CUISINES: Array<{ name: string; pattern: RegExp }> = [
+  { name: "North Indian", pattern: /\bnorth\s+indian\b/i },
+  { name: "South Indian", pattern: /\bsouth\s+indian\b/i },
+  { name: "Mughlai", pattern: /\bmughlai\b/i },
+  { name: "Indo-Chinese", pattern: /\b(?:indo-?chinese|chinese)\b/i },
+  { name: "Coastal Indian", pattern: /\b(?:coastal\s+indian|coastal)\b/i },
+  { name: "Continental", pattern: /\bcontinental\b/i },
+  { name: "Asian", pattern: /\b(?:asian|thai)\b/i },
+  { name: "Italian", pattern: /\bitalian\b/i },
+];
 
 export function extractFallbackIntent(query: string): Intent {
   const text = query.trim().toLowerCase();
@@ -96,7 +114,7 @@ export function extractFallbackIntent(query: string): Intent {
   let spiceLevel: Intent["spice_level"] = null;
   if (/\b(?:not\s+too\s+spicy|not\s+very\s+spicy|not\s+spicy|low\s+spice|mild|mildly\s+spicy|light\s+spice|little\s+spicy)\b/.test(text)) {
     spiceLevel = 1;
-  } else if (/\b(?:medium\s+spic(?:y|e)|moderate\s+spice|medium)\b/.test(text)) {
+  } else if (/\b(?:medium\s+spic(?:y|e)|moderate\s+spice|medium|medium\s+heat)\b/.test(text)) {
     spiceLevel = 2;
   } else if (/\b(?:very\s+spicy|extra\s+spicy|super\s+spicy|spicy|hot|fiery)\b/.test(text)) {
     spiceLevel = 3;
@@ -128,22 +146,11 @@ export function extractFallbackIntent(query: string): Intent {
 
   // 6. Cuisine
   let cuisine: string | null = null;
-  if (/\bnorth\s+indian\b/.test(text)) {
-    cuisine = "North Indian";
-  } else if (/\bsouth\s+indian\b/.test(text)) {
-    cuisine = "South Indian";
-  } else if (/\bmughlai\b/.test(text)) {
-    cuisine = "Mughlai";
-  } else if (/\b(?:indo-?chinese|chinese)\b/.test(text)) {
-    cuisine = "Indo-Chinese";
-  } else if (/\b(?:coastal\s+indian|coastal)\b/.test(text)) {
-    cuisine = "Coastal Indian";
-  } else if (/\bcontinental\b/.test(text)) {
-    cuisine = "Continental";
-  } else if (/\b(?:asian|thai)\b/.test(text)) {
-    cuisine = "Asian";
-  } else if (/\bitalian\b/.test(text)) {
-    cuisine = "Italian";
+  for (const item of KNOWN_CUISINES) {
+    if (item.pattern.test(text)) {
+      cuisine = item.name;
+      break;
+    }
   }
 
   return {

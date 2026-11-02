@@ -2,6 +2,7 @@ import { Intent } from "./schema";
 import {
   PER_PERSON_PATTERN,
   extractBudgetAmount,
+  KNOWN_CUISINES,
 } from "./fallback";
 
 export const CUISINE_ALIASES: Record<string, string[]> = {
@@ -16,7 +17,7 @@ export const CUISINE_ALIASES: Record<string, string[]> = {
 };
 
 export const PARTY_EVIDENCE_PATTERN =
-  /\b(?:family|couple|wife|husband|kids|children|friends|group|us|we|both|pair|party|table\s+for)\b/i;
+  /\b(?:family|couple|wife|husband|kids|children|friends|group|us|we|both|pair|party|table\s+for|parents|mom|mum|dad|mother|father|brother|sister|son|daughter|girlfriend|boyfriend|partner|colleagues|team|guests|people|persons|with\s+my|and\s+my|me\s+and|and\s+i|along\s+with)\b/i;
 
 export const NUMBER_WORDS_PATTERN =
   /\b(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b/i;
@@ -73,18 +74,15 @@ export function applyPostProcessingRules(
   }
 
   // Rule 1: Per-person budget
-  // if query has a per-person phrase ("each", "per person", "per head", "a head", "pp", "/person")
-  // with an amount, set budget_total = amount * party_size.
-  if (PER_PERSON_PATTERN.test(text)) {
-    const baseAmount = budgetMatch ? budgetMatch.amount : processed.budget_total;
-    if (baseAmount !== null) {
-      const calculatedBudget = baseAmount * (processed.party_size || 1);
-      if (processed.budget_total !== calculatedBudget) {
-        processed.budget_total = calculatedBudget;
-        adjustments.push(
-          `rule:per_person_budget: budget_total set to ${calculatedBudget}`
-        );
-      }
+  // Computed strictly from the amount found in the QUERY TEXT using the fallback regex,
+  // multiplied by party_size. Never multiply the LLM's budget_total. Idempotent.
+  if (PER_PERSON_PATTERN.test(text) && budgetMatch) {
+    const calculatedBudget = budgetMatch.amount * (processed.party_size || 1);
+    if (processed.budget_total !== calculatedBudget) {
+      processed.budget_total = calculatedBudget;
+      adjustments.push(
+        `rule:per_person_budget: budget_total set to ${calculatedBudget}`
+      );
     }
   }
 
@@ -100,6 +98,17 @@ export function applyPostProcessingRules(
     if (!isGrounded) {
       processed.cuisine = null;
       adjustments.push("rule:grounded_cuisine: cuisine reset to null");
+    }
+  }
+
+  // Missing cuisine: if LLM returned null cuisine and query contains a known cuisine word from fallback list
+  if (processed.cuisine === null) {
+    for (const item of KNOWN_CUISINES) {
+      if (item.pattern.test(text)) {
+        processed.cuisine = item.name;
+        adjustments.push(`rule:missing_cuisine: cuisine set to ${item.name}`);
+        break;
+      }
     }
   }
 

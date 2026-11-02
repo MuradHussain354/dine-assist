@@ -6,6 +6,8 @@ import {
   DIET_KEYWORDS,
   SPICE_KEYWORDS,
   BUDGET_NUMBER_PATTERN,
+  BUDGET_NUMBER_WORD_PATTERN,
+  K_AMOUNT_PATTERN,
 } from "./fallback";
 import { applyPostProcessingRules } from "./postprocess";
 
@@ -48,7 +50,12 @@ export function applyGroundingGuard(
     corrected.spice_level = null;
   }
 
-  if (!BUDGET_NUMBER_PATTERN.test(query) && corrected.budget_total !== null) {
+  const hasBudgetEvidence =
+    BUDGET_NUMBER_PATTERN.test(query) ||
+    BUDGET_NUMBER_WORD_PATTERN.test(query) ||
+    K_AMOUNT_PATTERN.test(query);
+
+  if (!hasBudgetEvidence && corrected.budget_total !== null) {
     adjustments.push(
       `budget_total reset from ${corrected.budget_total} to null`
     );
